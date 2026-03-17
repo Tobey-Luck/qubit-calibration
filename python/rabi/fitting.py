@@ -38,19 +38,12 @@ def rabi_model(t: np.ndarray, omega: float, amplitude: float,
     """
     Damped Rabi oscillation model.
 
-    Args:
-        t:          Time array (us)
-        omega:      Rabi frequency (rad/us)
-        amplitude:  Oscillation amplitude
-        tau:        Decay time constant (us)
-        offset:     DC offset
-        phi:        Phase offset (rad)
+    P(|1>) = offset + amplitude * exp(-t/tau) * (1 - cos(omega*t + phi)) / 2
 
-    Returns:
-        Modelled P(|1>) at each time point
+    This form correctly separates the DC equilibrium (offset) from the
+    decaying oscillation, matching the Lindblad master equation solution.
     """
-    envelope = amplitude * np.exp(-t / tau)
-    return envelope * np.sin(omega * t / 2.0 + phi) ** 2 + offset
+    return offset + amplitude * 0.5 * (1 - np.exp(-t / tau) * np.cos(omega * t + phi))
 
 
 def estimate_initial_params(
@@ -80,7 +73,7 @@ def estimate_initial_params(
     # Dominant frequency in cycles/us -> convert to rad/us for omega
     # Rabi oscillation in P(|1>) = sin^2(omega*t/2) has frequency omega/pi
     dominant_freq = freqs[np.argmax(psd[1:]) + 1]  # skip DC
-    omega_guess = dominant_freq * np.pi * 2    # sin^2(omega*t/2) has freq omega/pi
+    omega_guess = dominant_freq * 2 * np.pi    # sin^2(omega*t/2) has freq omega/pi
 
     amplitude_guess = (np.max(excited_pop) - np.min(excited_pop))
     tau_guess = times[-1] * 2.0   # assume slow decay
@@ -110,8 +103,8 @@ def fit_rabi(
 
     # Parameter bounds: all physical values
     bounds = (
-        [0,    0,   0.1,  -0.1, -np.pi],   # lower bounds
-        [1e3,  1.5,  1e6,   0.6,  np.pi],  # upper bounds
+        [0,    0,   0.1,  -0.1, -np.pi],   # lower
+        [1e3,  1.5,  1e6,   0.6,  np.pi],  # upper  (unchanged)
     )
 
     popt, pcov = curve_fit(

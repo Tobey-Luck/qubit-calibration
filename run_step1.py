@@ -31,7 +31,7 @@ os.add_dll_directory(r"C:\msys64\mingw64\bin")
 # Parameters
 # ---------------------------------------------------------------------------
 
-OMEGA_RABI  = 2.0    # rad/us  — this is what we're trying to calibrate
+OMEGA_RABI  = 2.0    # rad/us, this is what we're trying to calibrate
 T_MAX       = 10.0   # us
 N_POINTS    = 200
 NOISE_LEVEL = 0.02   # ~ 500 shot statistics
@@ -42,7 +42,7 @@ SEED        = 42
 # ---------------------------------------------------------------------------
 
 print("=" * 55)
-print("  Qubit Calibration Simulator — Step 1: Rabi")
+print("  Qubit Calibration Simulator, Step 1: Rabi")
 print("=" * 55)
 print(f"\nTrue Rabi frequency: ω = {OMEGA_RABI:.4f} rad/µs")
 print(f"π-pulse time:        {np.pi / OMEGA_RABI:.4f} µs")
