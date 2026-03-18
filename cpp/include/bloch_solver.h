@@ -37,6 +37,12 @@ struct SolverResult {
     std::vector<double> excited_pop;  // P(|1>) = (1 + Bz) / 2
 };
 
+/// Output of a Ramsey experiment sweep
+struct RamseyResult {
+    std::vector<double> tau_times;    // Free precession times (us)
+    std::vector<double> excited_pop;  // P(|1>) at each tau
+};
+
 // ---------------------------------------------------------------------------
 // Operator overloads for BlochState arithmetic (used in RK4)
 // ---------------------------------------------------------------------------
@@ -60,6 +66,32 @@ SolverResult solve_bloch(
     const BlochState&  initial_state,
     double             t_max,
     int                n_points
+);
+
+// ---------------------------------------------------------------------------
+// Ramsey experiment solver
+// ---------------------------------------------------------------------------
+
+/// Run a single Ramsey sequence for one tau value.
+/// Implements: |0> --[pi/2 pulse]--> free precession(tau) --[pi/2 pulse]--> P(|1>)
+double ramsey_single(
+    double             tau,
+    double             omega_rabi,
+    double             delta,
+    const BlochParams& decoherence_params,
+    int                n_steps_pulse,
+    int                n_steps_free
+);
+
+/// Sweep over tau values to produce full Ramsey decay curve.
+RamseyResult solve_ramsey(
+    double             omega_rabi,
+    double             delta,
+    const BlochParams& decoherence_params,
+    double             tau_max,
+    int                n_tau,
+    int                n_steps_pulse,
+    int                n_steps_free
 );
 
 } // namespace qubit_cal

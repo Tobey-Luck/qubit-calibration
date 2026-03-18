@@ -1,17 +1,9 @@
 // cpp/src/bindings.cpp
 // --------------------
 // pybind11 bindings: exposes the C++ Bloch solver to Python.
-//
-// After building (see README), import in Python as:
-//
-//     from qubit_calibration.cpp_solver import BlochParams, BlochState, solve_bloch
-//
-// pybind11 beginner note:
-//   PYBIND11_MODULE defines a Python module. py::class_ wraps a C++ struct/class.
-//   .def() registers a method or property. def_readwrite() exposes a member variable.
 
 #include <pybind11/pybind11.h>
-#include <pybind11/stl.h>       // Automatic std::vector <-> Python list conversion
+#include <pybind11/stl.h>
 #include "../include/bloch_solver.h"
 
 namespace py = pybind11;
@@ -58,13 +50,18 @@ PYBIND11_MODULE(cpp_solver, m) {
 
     // --- SolverResult ---
     py::class_<SolverResult>(m, "SolverResult", "Output of solve_bloch()")
-        .def_readonly("times",       &SolverResult::times,
-                      "Time points in microseconds")
-        .def_readonly("bx",          &SolverResult::bx, "Bloch vector x component")
-        .def_readonly("by",          &SolverResult::by, "Bloch vector y component")
-        .def_readonly("bz",          &SolverResult::bz, "Bloch vector z component")
-        .def_readonly("excited_pop", &SolverResult::excited_pop,
-                      "P(|1>) = (1 + Bz) / 2 at each time point");
+        .def_readonly("times",       &SolverResult::times)
+        .def_readonly("bx",          &SolverResult::bx)
+        .def_readonly("by",          &SolverResult::by)
+        .def_readonly("bz",          &SolverResult::bz)
+        .def_readonly("excited_pop", &SolverResult::excited_pop);
+
+    // --- RamseyResult (C++) ---
+    py::class_<RamseyResult>(m, "CppRamseyResult", "Output of solve_ramsey()")
+        .def_readonly("tau_times",   &RamseyResult::tau_times,
+                      "Free precession times in microseconds")
+        .def_readonly("excited_pop", &RamseyResult::excited_pop,
+                      "P(|1>) at each tau value");
 
     // --- solve_bloch ---
     m.def("solve_bloch", &solve_bloch,
@@ -83,6 +80,34 @@ PYBIND11_MODULE(cpp_solver, m) {
 
         Returns:
             SolverResult with times, Bloch vector components, and P(|1>)
+        )doc"
+    );
+
+    // --- solve_ramsey ---
+    m.def("solve_ramsey", &solve_ramsey,
+        py::arg("omega_rabi"),
+        py::arg("delta"),
+        py::arg("decoherence_params"),
+        py::arg("tau_max"),
+        py::arg("n_tau"),
+        py::arg("n_steps_pulse") = 50,
+        py::arg("n_steps_free")  = 20,
+        R"doc(
+        Run a Ramsey experiment sweep using the C++ RK4 solver.
+
+        Implements pi/2 -> free precession(tau) -> pi/2 for each tau value.
+
+        Args:
+            omega_rabi:          Rabi frequency for pi/2 pulses (rad/us)
+            delta:               Intentional detuning during free precession (rad/us)
+            decoherence_params:  BlochParams with T1/T2 values
+            tau_max:             Maximum free precession time (us)
+            n_tau:               Number of tau points to sweep
+            n_steps_pulse:       RK4 steps per pi/2 pulse (default 50)
+            n_steps_free:        RK4 steps per us of free precession (default 20)
+
+        Returns:
+            CppRamseyResult with tau_times and excited_pop arrays
         )doc"
     );
 }

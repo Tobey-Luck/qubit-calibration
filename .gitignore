@@ -18,6 +18,9 @@ cpp/-p/
 *.png
 *.jpg
 
+# Temporary diagnostic files
+python/rabi/temp.py
+
 # IDE
 .idea/
 .vscode/

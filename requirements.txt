@@ -4,3 +4,4 @@ scipy>=1.10
 matplotlib>=3.7
 pytest>=7.0
 pybind11>=2.11
+emcee>=3.1
