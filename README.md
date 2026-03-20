@@ -15,11 +15,14 @@ qubit_calibration/
 │   │   ├── fitting.py        # SciPy curve fitting + parameter extraction
 │   │   ├── t1t2_noise.py     # Lindblad T1/T2 decoherence simulation
 │   │   ├── ramsey.py         # Ramsey experiment for precise T2 measurement
+│   │   ├── bayesian.py       # Bayesian MCMC parameter estimation (emcee)
 │   │   └── visualization.py  # Calibration fit plots
 │   └── tests/
+│       ├── conftest.py       # pytest path configuration
 │       ├── test_rabi.py      # 17 tests: Rabi simulation and fitting
 │       ├── test_t1t2.py      # 24 tests: T1/T2 decoherence
-│       └── test_ramsey.py    # 16 tests: Ramsey experiment
+│       ├── test_ramsey.py    # 16 tests: Ramsey experiment
+│       └── test_bayesian.py  # 20 tests: Bayesian estimation
 ├── cpp/
 │   ├── include/
 │   │   └── bloch_solver.h    # C++ data structures + declarations
@@ -31,6 +34,8 @@ qubit_calibration/
 ├── run_step1.py              # Rabi calibration demo
 ├── run_step2.py              # T1/T2 decoherence demo
 ├── run_step3.py              # Ramsey experiment demo
+├── run_step4.py              # Bayesian estimation demo
+├── pytest.ini                # pytest path configuration
 ├── requirements.txt
 └── README.md
 ```
@@ -42,7 +47,7 @@ qubit_calibration/
 | 1 | Rabi oscillation simulation + curve fitting | Done |
 | 2 | T1/T2 noise via Lindblad master equation | Done |
 | 3 | Ramsey experiment + T2 extraction | Done |
-| 4 | Bayesian parameter estimation (emcee) | Next |
+| 4 | Bayesian parameter estimation (emcee) | Done |
 | 5 | Qiskit Aer noise model integration | Planned |
 
 ## Setup
@@ -113,8 +118,9 @@ this limitation does not apply.
 python run_step1.py    # Rabi calibration
 python run_step2.py    # T1/T2 decoherence
 python run_step3.py    # Ramsey T2 measurement
+python run_step4.py    # Bayesian estimation (takes ~5 min)
 
-# Full test suite (57 tests)
+# Full test suite (77 tests)
 pytest python/tests/ -v
 
 # Standalone C++ validation
@@ -134,8 +140,8 @@ FFT-seeded initial parameter estimates.
 
 ### Step 2 — T1/T2 Decoherence (Lindblad Master Equation)
 Two decoherence processes are modelled via collapse operators in QuTiP:
-- **T1**: Energy relaxation — C1 = sqrt(1/T1) * sigma_minus
-- **T2**: Dephasing — C2 = sqrt(gamma_phi) * sigma_z
+- T1: Energy relaxation — C1 = sqrt(1/T1) * sigma_minus
+- T2: Dephasing — C2 = sqrt(gamma_phi) * sigma_z
 
 The combined signal is a damped oscillation. T2 extracted from Rabi data
 has ~15% error due to the competing drive.
@@ -150,6 +156,19 @@ T2 extracted from Ramsey data achieves ~1-2% error — a 10x improvement
 over Rabi extraction, demonstrating why dedicated T2 experiments are used
 on real quantum hardware.
 
+### Step 4 — Bayesian Parameter Estimation (MCMC)
+Uses emcee ensemble sampler to explore the full posterior distribution over
+calibration parameters. Compared to curve_fit:
+- Returns full posterior distributions, not just point estimates
+- Correctly propagates uncertainty when parameters are correlated
+- Naturally incorporates physical prior constraints
+- Reveals parameter correlations (e.g. omega vs T2 in joint estimation)
+
+Three inference problems:
+1. Rabi omega from ideal data
+2. T2 from Ramsey fringe data
+3. Joint omega + T2 from decohered Rabi data
+
 ### C++ RK4 Bloch Solver
 Integrates the optical Bloch equations using 4th-order Runge-Kutta:
 ```
@@ -157,7 +176,8 @@ dBx/dt =  delta*By - Bx/T2
 dBy/dt = -delta*Bx + omega*Bz - By/T2
 dBz/dt = -omega*By - (Bz - Bz_eq)/T1
 ```
-Agrees with QuTiP to < 2e-05 for Rabi oscillations.
+Agrees with QuTiP to < 2e-05 for Rabi oscillations. Also implements the
+full Ramsey pulse sequence in C++.
 
 ## Results Summary
 
@@ -166,3 +186,5 @@ Agrees with QuTiP to < 2e-05 for Rabi oscillations.
 | Step 1: Rabi | omega_rabi | 2.0000 rad/us | 1.9997 rad/us | 0.015% |
 | Step 2: Rabi + T1/T2 | T2 | 30.0 us | 25.35 us | 15.5% |
 | Step 3: Ramsey | T2 | 30.0 us | 30.40 us | 1.3% |
+| Step 4: Bayesian Rabi | omega_rabi | 2.0000 rad/us | 1.9996 rad/us | 0.02% |
+| Step 4: Bayesian Ramsey | T2 | 30.0 us | 29.88 us | 0.4% |
