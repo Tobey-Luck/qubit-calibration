@@ -5,3 +5,6 @@ matplotlib>=3.7
 pytest>=7.0
 pybind11>=2.11
 emcee>=3.1
+qiskit>=1.0
+qiskit-aer>=0.14
+qiskit-ibm-runtime>=0.20
